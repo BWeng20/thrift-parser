@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="ThriftParser" default="default" basedir=".">
+    <description>Builds, tests, and runs the project ThriftParser.</description>
+    <import file="nbproject/build-impl.xml"/>
+    <import file="nbproject/build-antlr-impl.xml"/>
+    <target name="-pre-init" depends="-antlr-pre-init"/>
+    <target name="-pre-compile" depends="antlr" />
+</project>
