@@ -1,2 +1,2 @@
-# netbeans-thrift
-Apache Thrift Support for the NetBeans8 Platform.
+# thrift-parser
+Thrift Parser to create a type model from thrift idl files.
