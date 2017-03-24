@@ -12,15 +12,15 @@ import org.antlr.runtime.RecognitionException;
  * Test tool to call the parser from command line.
  */
 public class ThriftParserMain {
-        
-    public static void main(String[] args) throws RecognitionException 
+
+    public static void main(String[] args) throws RecognitionException
     {
-        try 
+        try
         {
             ThriftModelGenerator gen = new ThriftModelGenerator();
-            ThriftDocument doc = gen.loadDocument(args[0]);
-            gen.loadIncludes( doc );            
-            
+            ThriftDocument doc = gen.loadDocument(gen.getPath(args[0]));
+            gen.loadIncludes( doc );
+
             System.out.println(doc.toString() );
 
         }

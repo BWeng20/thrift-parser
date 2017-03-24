@@ -7,16 +7,21 @@ package bweng.thrift.parser;
 import bweng.thrift.parser.model.*;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.antlr.runtime.ANTLRFileStream;
+import org.antlr.runtime.ANTLRReaderStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.TokenStream;
@@ -156,7 +161,7 @@ public final class ThriftModelGenerator
 
     private void loadIncludesInternal( ThriftDocument doc )
     {
-        File docFile = new File( doc.ospath_);
+        Path docFile = doc.ospath_;
 
         for (int i=0 ; i<doc.includes_.size() ; ++i)
         {
@@ -164,25 +169,24 @@ public final class ThriftModelGenerator
             if ( null == ic.doc_ )
             {
                 try {
-                    ic.ospath_ = ic.path_.replace("\\", File.separator );
-
-                    File bf = docFile.getAbsoluteFile().getParentFile();
+                    Path bf = docFile.getParent();
 
                     while ( null != bf)
                     {
-                        File f = new File( bf.getPath() + File.separator + ic.ospath_ );
-                        if ( f.exists() )
+                        Path f = bf.resolve( ic.path_ );
+                        if ( Files.exists(f) )
                         {
-                            ic.ospath_ = f.getCanonicalPath();
-                            ic.doc_ = loaded_.get(ic.ospath_);
+                            ic.ospath_ = f;
+                            final String uriS = ic.ospath_.toUri().toString();
+                            ic.doc_ = loaded_.get(uriS);
                             if ( ic.doc_ == null )
                             {
                                 ic.doc_ = loadDocument( ic.ospath_ );
-                                loaded_.put(ic.ospath_, ic.doc_ );
+                                loaded_.put(uriS, ic.doc_ );
                             }
                             break;
                         }
-                        bf = bf.getParentFile();
+                        bf = bf.getParent();
                     }
                 }
                 catch (IOException ex)
@@ -213,12 +217,54 @@ public final class ThriftModelGenerator
        return name;
     }
 
-    public synchronized ThriftDocument loadDocument( String ospath ) throws IOException
+    static public Path getPath( String ospath )
     {
-       String name = getDocumentName( ospath );
-       ThriftDocument doc = generateModel(name, new ThriftLexer(new ANTLRFileStream(ospath)));
-       doc.ospath_ = ospath;
-       return doc;
+        URI uri = null;
+        try
+        {
+            uri = new URI(ospath);
+        }
+        catch (URISyntaxException uriex)
+        {
+        }
+
+        if ( uri != null && "jar".equalsIgnoreCase( uri.getScheme() ))
+        {
+            FileSystem fs=null;
+            int si = ospath.indexOf("!");
+            String arc = ospath.substring(0,si);
+            try
+            {
+                URI fsuri = new URI( arc );
+                try
+                {
+                    fs = FileSystems.getFileSystem(fsuri);
+                }
+                catch ( FileSystemNotFoundException fsnf)
+                {
+                    fs =  FileSystems.newFileSystem(fsuri, new HashMap<String, Object>());
+                }
+                return fs.getPath(ospath.substring(si+1));
+            }
+            catch (Exception ex2)
+            {
+            }
+        }
+        return FileSystems.getDefault().getPath(ospath);
+
+    }
+
+    public synchronized ThriftDocument loadDocument( Path ospath ) throws IOException
+    {
+        ThriftDocument doc = null;
+
+        String name = getDocumentName( ospath.toString() );
+        doc = generateModel(name, new ThriftLexer(new ANTLRReaderStream(Files.newBufferedReader(ospath))));
+        if ( doc != null )
+        {
+           doc.ospath_ = ospath;
+        }
+        return doc;
     }
 
     public synchronized ThriftDocument generateModel( String name, ThriftLexer lex )
@@ -235,7 +281,7 @@ public final class ThriftModelGenerator
         }
         catch (RecognitionException ex)
         {
-            Logger.getLogger(ThriftModelGenerator.class.getName()).log(Level.SEVERE, null, ex);
+          ex.printStackTrace();
         }
 
         tokens_ = null;
