@@ -170,10 +170,11 @@ public final class ThriftModelGenerator
             {
                 try {
                     Path bf = docFile.getParent();
+                    final String icSubPath = ic.path_.replace('\\', File.separatorChar);
 
                     while ( null != bf)
                     {
-                        Path f = bf.resolve( ic.path_ );
+                        Path f = bf.resolve(  icSubPath );
                         if ( Files.exists(f) )
                         {
                             ic.ospath_ = f;
