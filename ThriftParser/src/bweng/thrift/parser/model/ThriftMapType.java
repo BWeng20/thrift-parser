@@ -5,16 +5,15 @@
 package bweng.thrift.parser.model;
 
 /**
- *
- * @author Bernd Wengenroth
+ * Represents a map type.
  */
-public final class ThriftMapType extends ThriftType 
+public final class ThriftMapType extends ThriftType
 {
 
     public ThriftType key_type_;
     public ThriftType value_type_;
-    
-    
+
+
     @Override
     public String toString()
     {

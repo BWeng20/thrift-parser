@@ -11,16 +11,22 @@ import java.util.List;
  */
 public class ThriftFunction extends ThriftObject
 {
-    public String name_;   
+    public String name_;
     public List<ThriftField> parameters_;
     public ThriftType return_type_;
     public ThriftFunctionMode mode_ = ThriftFunctionMode.NONE;
-    
+
+    public List<ThriftField> exceptions_;
+
     public ThriftService service_;
-    
+
     @Override
     public String toString()
     {
-        return "" + return_type_ + ' ' + name_ + parameters_;
+        StringBuilder sb = new StringBuilder(100);
+        sb.append(return_type_).append(' ').append(name_).append(parameters_);
+        if ( !exceptions_.isEmpty() )
+            sb.append(" throws ").append(exceptions_);
+        return sb.toString();
     }
 }

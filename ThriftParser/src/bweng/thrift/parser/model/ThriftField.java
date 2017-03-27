@@ -12,13 +12,14 @@ public final class ThriftField extends ThriftObject
     public String name_;
     public int    id_;
     public ThriftType type_;
-           
+
     @Override
     public String toString()
     {
-        return ((type_ != null)
+        return ""+id_+":"+
+               ((type_ != null)
                 ? ((type_.name_!= null) ?type_.name_ : type_.toString())
-                : "?" ) + ':' + name_;
+                : "?" ) + ' ' + name_;
     }
-    
+
 }

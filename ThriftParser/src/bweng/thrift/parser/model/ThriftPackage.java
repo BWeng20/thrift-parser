@@ -11,23 +11,27 @@ import java.util.List;
  * Part of the data model, representing a Thrift Package [DAI Extension].
  */
 public class ThriftPackage extends ThriftScope
-{      
+{
     // Direct sub packages
     public List<ThriftPackage> subpackages_ = new ArrayList<>();
     // types
     public ThriftPackage parent_;
-        
+
     @Override
     public String toString()
     {
-        return "package "+name_+services_+" "+subpackages_;
+        StringBuilder sb = new StringBuilder(1000);
+        sb.append("package ").append( name_ );
+        if ( !services_.isEmpty() ) sb.append(services_);
+        if ( !subpackages_.isEmpty() ) sb.append('{').append(subpackages_).append("}");
+        return sb.toString();
     }
-    
+
     public ThriftType findTypeInPackage( String name )
-    {       
+    {
         if ( name.startsWith( name_fully_qualified_+'.' ))
             name = name.substring( name_fully_qualified_.length()+1 );
-        
+
         if ( 0 <= name.indexOf('.' ))
         {
             // Search in sub packages
@@ -49,12 +53,12 @@ public class ThriftPackage extends ThriftScope
         }
         return null;
     }
-    
+
     public ThriftService findServiceInPackage( String name )
-    {       
+    {
         if ( name.startsWith( name_fully_qualified_+'.' ))
             name = name.substring( name_fully_qualified_.length()+1 );
-        
+
         if ( 0 <= name.indexOf('.' ))
         {
             // Search in sub packages
@@ -75,5 +79,5 @@ public class ThriftPackage extends ThriftScope
                     return services_.get(ti);
         }
         return null;
-    }    
+    }
 }

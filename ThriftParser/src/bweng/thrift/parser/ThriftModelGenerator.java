@@ -411,14 +411,23 @@ public final class ThriftModelGenerator
 
         // Go up the package hierachy
         ThriftPackage p = current_package_;
-        while( p != null )
+        if ( p != null )
         {
-            String fqname = get_fully_qualifiedname(p, name);
-            tp = doc_.all_types_.get( fqname );
-            if ( null != tp ) return tp;
-            p = p.parent_;
+            while( p != null )
+            {
+                final String fqname = get_fully_qualifiedname(p, name);
+                tp = doc_.all_types_.get( fqname );
+                if ( null != tp ) return tp;
+                p = p.parent_;
+            }
+            return null;
         }
-        return null;
+        else
+        {
+            final String fqname = get_fully_qualifiedname(p, name);
+            return doc_.all_types_.get( fqname );
+        }
+
     }
 
     private ThriftType find_type( String name )
@@ -556,6 +565,9 @@ public final class ThriftModelGenerator
                 case ThriftParser.INCLUDE:
                     doc_.includes_.add(gen_include( ct ));
                     break;
+                case ThriftParser.EXCEPTION:
+                    gen_exception( ct );
+                    break;
             }
 
         }
@@ -664,6 +676,26 @@ public final class ThriftModelGenerator
         add_type_to_scope( en );
     }
 
+    private void gen_exception( CommonTree dt )
+    {
+        ThriftExceptionType e = new ThriftExceptionType();
+        add_typeheaderinfo( dt, e );
+
+        e.fields_ = new ArrayList<>();
+        add_type_to_scope(e);
+
+        for (int i = 1 ; i<dt.getChildCount() ; ++i )
+        {
+            CommonTree ct = (CommonTree)dt.getChild(i);
+            switch ( ct.getType() )
+            {
+                case ThriftParser.FIELD_:
+                    e.fields_.add( gen_field( ct ));
+                    break;
+            }
+        }
+    }
+
     private void gen_struct( CommonTree dt )
     {
         ThriftStructType s = new ThriftStructType();
@@ -761,6 +793,22 @@ public final class ThriftModelGenerator
         return s;
     }
 
+    private List<ThriftField> gen_throws(CommonTree dt)
+    {
+        ArrayList<ThriftField> p = new ArrayList<>();
+        for (int i = 0 ; i<dt.getChildCount() ; ++i )
+        {
+            CommonTree dtP = (CommonTree)dt.getChild(i);
+            switch ( dtP.getType() )
+            {
+                case ThriftParser.FIELD_:
+                    p.add(gen_field(dtP));
+                    break;
+            }
+        }
+        return p;
+    }
+
     private List<ThriftField> gen_parameters(CommonTree dt )
     {
         ArrayList<ThriftField> p = new ArrayList<>();
@@ -792,6 +840,9 @@ public final class ThriftModelGenerator
 
         add_comment( dt, f );
         f.parameters_ = gen_parameters((CommonTree)dt.getFirstChildWithType(ThriftParser.ARGS_));
+
+        f.exceptions_ = gen_throws((CommonTree)dt.getFirstChildWithType(ThriftParser.THROWS));
+
         return f;
     }
 }
