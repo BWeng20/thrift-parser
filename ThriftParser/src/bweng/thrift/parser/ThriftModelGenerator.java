@@ -797,14 +797,17 @@ public final class ThriftModelGenerator
     private List<ThriftField> gen_throws(CommonTree dt)
     {
         ArrayList<ThriftField> p = new ArrayList<>();
-        for (int i = 0 ; i<dt.getChildCount() ; ++i )
+        if ( dt != null )
         {
-            CommonTree dtP = (CommonTree)dt.getChild(i);
-            switch ( dtP.getType() )
+            for (int i = 0 ; i<dt.getChildCount() ; ++i )
             {
-                case ThriftParser.FIELD_:
-                    p.add(gen_field(dtP));
-                    break;
+                CommonTree dtP = (CommonTree)dt.getChild(i);
+                switch ( dtP.getType() )
+                {
+                    case ThriftParser.FIELD_:
+                        p.add(gen_field(dtP));
+                        break;
+                }
             }
         }
         return p;
