@@ -431,8 +431,9 @@ public final class ThriftModelGenerator
 
     }
 
-    private ThriftType find_type( String name )
+    private ThriftType find_type( CommonTree dt )
     {
+        final String name = dt.getText();
         ThriftType tp = resolve_type(name);
         if ( null == tp )
         {
@@ -440,6 +441,7 @@ public final class ThriftModelGenerator
             if ( null == tp )
             {
                 ThriftTypeRef tpr = new ThriftTypeRef();
+                add_typeheaderinfo(dt, tpr);
                 tpr.setDocument(doc_);
                 tpr.declaredName_ = name;
                 tpr.package_ = current_package_;
@@ -597,7 +599,7 @@ public final class ThriftModelGenerator
     private void add_typeheaderinfo( CommonTree dt, ThriftType tp )
     {
         tp.name_ = get_identifier(dt);
-       tp.name_fully_qualified_ = get_fully_qualifiedname( tp.name_ );
+        tp.name_fully_qualified_ = get_fully_qualifiedname( tp.name_ );
         tp.package_ = current_package_;
         tp.line_  = dt.getLine() - 1;
         tp.column_= dt.getCharPositionInLine();
@@ -608,6 +610,7 @@ public final class ThriftModelGenerator
     private ThriftListType gen_listtype( CommonTree dt )
     {
         ThriftListType lt = new ThriftListType();
+        add_typeheaderinfo(dt, lt);
         lt.setDocument(doc_);
         if ( 0 < dt.getChildCount() )
             lt.value_type_ = gen_fieldtype( (CommonTree)dt.getChild(0) );
@@ -618,6 +621,7 @@ public final class ThriftModelGenerator
     private ThriftMapType gen_maptype( CommonTree dt )
     {
         ThriftMapType lt = new ThriftMapType();
+        add_typeheaderinfo(dt, lt);
         lt.setDocument(doc_);
         if ( 1 < dt.getChildCount() )
         {
@@ -630,6 +634,7 @@ public final class ThriftModelGenerator
     private ThriftSetType gen_settype( CommonTree dt )
     {
         ThriftSetType lt = new ThriftSetType();
+        add_typeheaderinfo(dt, lt);
         lt.setDocument(doc_);
         if ( 0 < dt.getChildCount() )
         {
@@ -748,7 +753,7 @@ public final class ThriftModelGenerator
             case ThriftParser.LIST:          return gen_listtype(dt);
             case ThriftParser.MAP:           return gen_maptype(dt);
             case ThriftParser.SET:           return gen_settype(dt);
-            case ThriftParser.IDENTIFIER:    return find_type( dt.getText() );
+            case ThriftParser.IDENTIFIER:    return find_type( dt );
 
         }
 
