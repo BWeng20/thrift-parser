@@ -562,6 +562,9 @@ public final class ThriftModelGenerator
                 case ThriftParser.STRUCT:
                     gen_struct( ct );
                     break;
+                case ThriftParser.UNION:
+                    gen_union( ct );
+                    break;
                 case ThriftParser.TYPEDEF:
                     gen_typedef( ct );
                     break;
@@ -697,6 +700,26 @@ public final class ThriftModelGenerator
             {
                 case ThriftParser.FIELD_:
                     e.fields_.add( gen_field( ct ));
+                    break;
+            }
+        }
+    }
+
+    private void gen_union( CommonTree dt )
+    {
+        ThriftUnionType u = new ThriftUnionType();
+        add_typeheaderinfo( dt, u );
+
+        u.fields_ = new ArrayList<>();
+        add_type_to_scope(u);
+
+        for (int i = 1 ; i<dt.getChildCount() ; ++i )
+        {
+            CommonTree ct = (CommonTree)dt.getChild(i);
+            switch ( ct.getType() )
+            {
+                case ThriftParser.FIELD_:
+                    u.fields_.add( gen_field( ct ));
                     break;
             }
         }
