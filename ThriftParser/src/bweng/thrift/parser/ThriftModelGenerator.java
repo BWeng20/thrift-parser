@@ -5,14 +5,22 @@
 package bweng.thrift.parser;
 
 import bweng.thrift.parser.model.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.charset.MalformedInputException;
+import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnmappableCharacterException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +34,7 @@ import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.TokenStream;
 import org.antlr.runtime.tree.CommonTree;
+import org.mozilla.universalchardet.UniversalDetector;
 
 /**
 * Generates our Data model from Antlr parser results.
@@ -260,7 +269,29 @@ public final class ThriftModelGenerator
         ThriftDocument doc = null;
 
         String name = getDocumentName( ospath.toString() );
-        doc = generateModel(name, new ThriftLexer(new ANTLRReaderStream(Files.newBufferedReader(ospath))));
+        
+        byte[] fileBuffer = Files.readAllBytes(ospath);
+        UniversalDetector detector = new UniversalDetector(null);
+        detector.handleData( fileBuffer, 0, fileBuffer.length);
+        detector.dataEnd();
+        String charsetName = detector.getDetectedCharset();
+        
+        Charset charset;
+        if (charsetName != null) 
+            charset = Charset.forName(charsetName);
+        else
+            charset = Charset.defaultCharset();
+        
+        if (charset != null) 
+        {
+           doc = generateModel(name, new ThriftLexer(new ANTLRReaderStream(
+               new InputStreamReader( new ByteArrayInputStream(fileBuffer),charset ))));
+        } 
+        else 
+        {
+           System.err.println( name+": failed to detect encoding.");
+        }
+        
         if ( doc != null )
         {
            doc.ospath_ = ospath;
