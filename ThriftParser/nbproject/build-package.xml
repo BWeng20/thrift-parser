@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="build-package-impl">
+<target name="Package-Plugin" depends="-post-jar" >
+    <property name="store.jar.name" value="ThriftParser"/>
+    <property name="store.dir" value="release"/>
+    <property name="store.jar" value="${store.dir}/${store.jar.name}.jar"/>
+    <echo message="Packaging ${application.title} into a single JAR at ${store.jar}"/>
+    <delete dir="${store.dir}"/>
+    <mkdir dir="${store.dir}"/>
+    <jar destfile="${store.dir}/temp_final.jar" filesetmanifest="skip">
+        <zipgroupfileset dir="dist" includes="*.jar"/>
+        <zipgroupfileset dir="libs" includes="antlr-runtime*.jar"/>
+        <zipgroupfileset dir="libs" includes="juniversalchardet*.jar"/>
+        <manifest>
+            <attribute name="Main-Class" value="bweng.thrift.parser.ThriftParserMain"/>
+        </manifest>
+    </jar>
+    <zip destfile="${store.jar}">
+        <zipfileset src="${store.dir}/temp_final.jar"
+        excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
+    </zip>
+    <delete file="${store.dir}/temp_final.jar"/>
+</target>
+</project>
