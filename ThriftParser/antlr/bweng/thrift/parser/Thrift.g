@@ -78,7 +78,7 @@ include
     ;
 
 dpackage
-    : PACKAGE k=IDENTIFIER LCURLY definition* RCURLY -> ^(PACKAGE $k definition*) 
+    : PACKAGE k=IDENTIFIER LCURLY definition* RCURLY list_separator? -> ^(PACKAGE $k definition*) 
     ;
 
 namespace
@@ -107,7 +107,7 @@ typedef
     ;
 
 enum_rule
-    : ENUM IDENTIFIER LCURLY enum_field* RCURLY -> ^(ENUM IDENTIFIER enum_field*)
+    : ENUM IDENTIFIER LCURLY enum_field* RCURLY list_separator? -> ^(ENUM IDENTIFIER enum_field*)
     ;
 
 enum_field
@@ -119,7 +119,7 @@ senum
     ;
 
 struct
-    : STRUCT IDENTIFIER LCURLY field* RCURLY type_annotations? -> ^(STRUCT IDENTIFIER field* type_annotations?)
+    : STRUCT IDENTIFIER LCURLY field* RCURLY type_annotations? list_separator? -> ^(STRUCT IDENTIFIER field* type_annotations?)
     ;
 
 union
@@ -131,7 +131,7 @@ exception
     ;
 
 service
-    : SERVICE s=IDENTIFIER (EXTENDS e=IDENTIFIER)? LCURLY f=function* RCURLY type_annotations? -> ^(SERVICE $s ^(EXTENDS_ $e?) function* type_annotations?)
+    : SERVICE s=IDENTIFIER (EXTENDS e=IDENTIFIER)? LCURLY f=function* RCURLY type_annotations? list_separator? -> ^(SERVICE $s ^(EXTENDS_ $e?) function* type_annotations?)
     ;
 
 
