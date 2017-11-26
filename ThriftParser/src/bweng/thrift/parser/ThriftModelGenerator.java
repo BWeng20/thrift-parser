@@ -625,11 +625,8 @@ public final class ThriftModelGenerator
         return get_fully_qualifiedname( current_package_, name );
     }
 
-
-    private void add_typeheaderinfo( CommonTree dt, ThriftType tp )
+    private void add_headerinfo( CommonTree dt, ThriftType tp )
     {
-        tp.name_ = get_identifier(dt);
-        tp.name_fully_qualified_ = get_fully_qualifiedname( tp.name_ );
         tp.package_ = current_package_;
         tp.line_  = dt.getLine() - 1;
         tp.column_= dt.getCharPositionInLine();
@@ -637,10 +634,18 @@ public final class ThriftModelGenerator
         add_comment(dt, tp);
     }
 
+    private void add_typeheaderinfo( CommonTree dt, ThriftType tp )
+    {
+        tp.name_ = get_identifier(dt);
+        tp.name_fully_qualified_ = tp.name_.isEmpty() ? tp.name_ : get_fully_qualifiedname( tp.name_ );
+        add_headerinfo( dt, tp );
+    }
+
     private ThriftListType gen_listtype( CommonTree dt )
     {
         ThriftListType lt = new ThriftListType();
-        add_typeheaderinfo(dt, lt);
+        lt.name_ = lt.name_fully_qualified_ = "";
+        add_headerinfo(dt, lt);
         lt.setDocument(doc_);
         if ( 0 < dt.getChildCount() )
             lt.value_type_ = gen_fieldtype( (CommonTree)dt.getChild(0) );
@@ -651,7 +656,8 @@ public final class ThriftModelGenerator
     private ThriftMapType gen_maptype( CommonTree dt )
     {
         ThriftMapType lt = new ThriftMapType();
-        add_typeheaderinfo(dt, lt);
+        lt.name_ = lt.name_fully_qualified_ = "";
+        add_headerinfo(dt, lt);
         lt.setDocument(doc_);
         if ( 1 < dt.getChildCount() )
         {
@@ -664,7 +670,8 @@ public final class ThriftModelGenerator
     private ThriftSetType gen_settype( CommonTree dt )
     {
         ThriftSetType lt = new ThriftSetType();
-        add_typeheaderinfo(dt, lt);
+        lt.name_ = lt.name_fully_qualified_ = "";
+        add_headerinfo(dt, lt);
         lt.setDocument(doc_);
         if ( 0 < dt.getChildCount() )
         {
