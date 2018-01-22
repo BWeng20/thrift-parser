@@ -479,7 +479,7 @@ public final class ThriftModelGenerator
         return tp;
     }
 
-    private int get_integer( CommonTree dt )
+    private long get_integer( CommonTree dt )
     {
         if ( null != dt )
         {
@@ -495,14 +495,14 @@ public final class ThriftModelGenerator
                     case ThriftParser.HEX_INTEGER:
                         String hx = dt.getText();
                         if ( hx.startsWith( "0x" )) hx = hx.substring(2);
-                        return Integer.parseInt( hx , 16 );
+                        return Long.parseLong( hx , 16 );
                 }
             }
             catch (NumberFormatException nfe )
             {
             }
         }
-        return Integer.MIN_VALUE;
+        return Long.MIN_VALUE;
     }
 
     private ThriftFunctionMode get_function_mode( CommonTree dt)
@@ -700,10 +700,10 @@ public final class ThriftModelGenerator
                     env.name_ = ct.getText();
                     if ( 0 < ct.getChildCount() )
                     {
-                         int vi = get_integer((CommonTree)ct.getChild(0));
-                         if ( vi != Integer.MIN_VALUE)
-                            autoVal = vi;
-                    }
+                         long vi = get_integer((CommonTree)ct.getChild(0));
+                         if ( vi >= Integer.MIN_VALUE || vi <= Integer.MAX_VALUE)
+                             autoVal = (int)vi;
+                    }                   
                     env.value_ = autoVal++;
                     en.values_.add(env);
                     break;
@@ -780,7 +780,7 @@ public final class ThriftModelGenerator
 
         if ( 2 <= dt.getChildCount() )
             f.type_ = gen_fieldtype( (CommonTree)dt.getChild(1) );
-        f.id_ = get_integer( (CommonTree)dt.getFirstChildWithType( ThriftParser.FIELD_ID_ ) );
+        f.id_ = (int)get_integer( (CommonTree)dt.getFirstChildWithType( ThriftParser.FIELD_ID_ ) );
         return f;
     }
 
