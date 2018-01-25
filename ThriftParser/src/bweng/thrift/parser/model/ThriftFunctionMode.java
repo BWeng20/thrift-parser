@@ -13,5 +13,8 @@ public enum ThriftFunctionMode
    ONEWAY,
    ASYNC,
    DEFERRED,
+   PROPERTY_GET_SET,
+   PROPERTY_GET_SET_CHANGED,
+   PROPERTY_GET_CHANGED,
    NONE
 }

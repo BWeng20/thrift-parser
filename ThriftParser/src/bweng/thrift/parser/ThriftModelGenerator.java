@@ -517,6 +517,9 @@ public final class ThriftModelGenerator
              case ThriftParser.ONEWAY:   return ThriftFunctionMode.ONEWAY;
              case ThriftParser.ASYNC:    return ThriftFunctionMode.ASYNC;
              case ThriftParser.DEFERRED: return ThriftFunctionMode.DEFERRED;
+             case ThriftParser.PROP_GSC: return ThriftFunctionMode.PROPERTY_GET_SET_CHANGED;
+             case ThriftParser.PROP_GS:  return ThriftFunctionMode.PROPERTY_GET_SET;
+             case ThriftParser.PROP_GC:  return ThriftFunctionMode.PROPERTY_GET_CHANGED;
              default:                    return ThriftFunctionMode.NONE;
           }
        }

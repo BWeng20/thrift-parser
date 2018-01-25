@@ -46,6 +46,9 @@ UNION   : 'union' ;
 EXCEPTION : 'exception' ;
 DEFERRED: 'deferred' ;
 EVENT   : 'event' ;
+PROP_GSC: 'propertygsc' ;
+PROP_GS : 'propertygs' ;
+PROP_GC : 'propertygc' ;
 ONEWAY  : 'oneway' ;
 ASYNC   : 'async' ;
 LIST    : 'list' ;
@@ -156,8 +159,7 @@ function
     ;
 
 function_mode
-    : EVENT | ONEWAY | ASYNC | DEFERRED
-    ;
+    : EVENT | ONEWAY | ASYNC | DEFERRED | PROP_GSC | PROP_GS | PROP_GC ;
 	
 function_type
     : field_type
