@@ -10,7 +10,9 @@
     <jar destfile="${store.dir}/temp_final.jar" filesetmanifest="skip">
         <zipgroupfileset dir="dist" includes="*.jar"/>
         <zipgroupfileset dir="libs" includes="antlr-runtime*.jar"/>
+        <zipfileset file="libs/Antlr-3.5.2-LICENSE.txt" prefix="META-INF/"/>
         <zipgroupfileset dir="libs" includes="juniversalchardet*.jar"/>
+        <zipfileset file="libs/mozilla-LICENSE.txt" prefix="META-INF/"/>
         <manifest>
             <attribute name="Main-Class" value="bweng.thrift.parser.ThriftParserMain"/>
         </manifest>
