@@ -13,29 +13,33 @@ import java.util.Map;
  */
 public class ThriftDocument extends ThriftScope
 {
-    // Operating system dependend path where the document was loaded from or null.
+    /** Operating system dependent path where the document was loaded from or null. */
     public Path ospath_;
 
+    /** All includes. */
     public List<ThriftInclude> includes_;
 
-    // All packages (also all sub-packages) [DAI Extension].
+    /** All packages (also all sub-packages) [DAI Extension]. */
     public List<ThriftPackage> all_packages_;
 
-    // All servives (also from all sub-packages)
+    /** All services (also from all sub-packages). */
     public List<ThriftService> all_services_;
 
-    // All servives (also from all sub-packages) by fully qualified name
+    /** All services (also from all sub-packages) by fully qualified name. */
     public Map<String,ThriftService> all_services_byname_;
 
-    // All types defined in this document
+    /** All types defined in this document. */
     public Map<String, ThriftType> all_types_;
 
-    // All yet unresolved types in this document
+    /** All yet unresolved types in this document. */
     public Map<String, ThriftTypeRef> unresolved_types_;
 
-    // All yet unresolved services in this document
+    /** All yet unresolved services in this document. */
     public Map<String, ThriftServiceRef> unresolved_services_;
 
+    /**
+     * Gets a human readable description.
+     */
     @Override
     public String toString()
     {

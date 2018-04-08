@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="build-package-impl">
+
+<target name="SourcesJar" >
+     <jar basedir="src" destfile="dist/${ant.project.name}-sources.jar"/>
+</target>
+<target name="JavaDocJar" depends="-javadoc-build" >
+	  <jar basedir="dist/javadoc" destfile="dist/${ant.project.name}-javadoc.jar"/>
+</target>
+
 <target name="Package-Plugin" depends="-post-jar" >
     <property name="store.jar.name" value="ThriftParser"/>
     <property name="store.dir" value="release"/>

@@ -11,17 +11,18 @@ import java.util.List;
 /**
  * Part of the data model, representing a Scope (thrift file or package).
  */
-public class ThriftScope extends ThriftObject 
+public class ThriftScope extends ThriftObject
 {
-    // Name of this scope (package or file)
+    /** Name of this scope (package or file). */
     public String name_;
-    // Full qualified name
+
+    /** Full qualified name. */
     public String name_fully_qualified_;
-    
-    // Services that belong to this scope only.
+
+    /** Services that belong to this scope only. */
     public List<ThriftService> services_ = new ArrayList<>();
-    
-    // Tyes that belong to this scope only.
+
+    /** Types that belong to this scope only. */
     public List<ThriftType> types_ = new ArrayList<>();
 
 }
