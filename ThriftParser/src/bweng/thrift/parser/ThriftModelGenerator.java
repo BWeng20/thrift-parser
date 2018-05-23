@@ -216,7 +216,7 @@ public final class ThriftModelGenerator
                         ic.doc_ = loaded_.get(uriS);
                         if ( ic.doc_ == null )
                         {
-                            ic.doc_ = loadDocument( ic.ospath_ );
+                            ic.doc_ = loadDocument( ic.ospath_, incudePaths_ );
                             loaded_.put(uriS, ic.doc_ );
                         }
                     }
