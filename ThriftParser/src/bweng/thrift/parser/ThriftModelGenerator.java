@@ -52,6 +52,7 @@ public final class ThriftModelGenerator
     TokenStream tokens_;
 
     Map<String,ThriftDocument> loaded_;
+    List<String> incudePaths_;
 
     Pattern version_pattern_ = Pattern.compile("@version\\s+([0-9\\.]+)", Pattern.CASE_INSENSITIVE);
     Pattern annotation_pattern_ = Pattern.compile("@(\\w+)\\s*(.*)\\s*[\\r\\n]?", Pattern.CASE_INSENSITIVE);
@@ -173,26 +174,51 @@ public final class ThriftModelGenerator
             ThriftInclude ic = doc.includes_.get(i);
             if ( null == ic.doc_ )
             {
+                Path found = null;
                 try {
                     Path bf = docFile.getParent();
                     final String icSubPath = ic.path_.replace('\\', File.separatorChar);
 
                     while ( null != bf)
                     {
-                        Path f = bf.resolve(  icSubPath );
-                        if ( Files.exists(f) )
+                        Path p  = bf.resolve(  icSubPath );
+                        if ( Files.exists(p) )
                         {
-                            ic.ospath_ = f;
-                            final String uriS = ic.ospath_.toUri().toString();
-                            ic.doc_ = loaded_.get(uriS);
-                            if ( ic.doc_ == null )
-                            {
-                                ic.doc_ = loadDocument( ic.ospath_ );
-                                loaded_.put(uriS, ic.doc_ );
-                            }
+                            found = p;
                             break;
                         }
                         bf = bf.getParent();
+                    }
+                    if ( found == null && incudePaths_ != null )
+                    {
+                        for ( String incPath : incudePaths_ )
+                        {
+                            if ( !incPath.isEmpty() )
+                            {
+                                if ( incPath.charAt(incPath.length()-1) != File.separatorChar)
+                                {
+                                    incPath = incPath + File.separatorChar;
+                                }
+                                incPath += icSubPath;
+                                Path p = getPath(incPath);
+                                if ( Files.exists(p) )
+                                {
+                                    found = p;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if ( found != null )
+                    {
+                        ic.ospath_ = found;
+                        final String uriS = ic.ospath_.toUri().toString();
+                        ic.doc_ = loaded_.get(uriS);
+                        if ( ic.doc_ == null )
+                        {
+                            ic.doc_ = loadDocument( ic.ospath_ );
+                            loaded_.put(uriS, ic.doc_ );
+                        }
                     }
                 }
                 catch (IOException ex)
@@ -260,9 +286,15 @@ public final class ThriftModelGenerator
 
     }
 
-    public synchronized ThriftDocument loadDocument( Path ospath ) throws IOException
+    public ThriftDocument loadDocument( Path ospath ) throws IOException
+    {
+        return loadDocument( ospath, null ); 
+    }
+    
+    public synchronized ThriftDocument loadDocument( Path ospath, List<String> incudePaths ) throws IOException
     {
         ThriftDocument doc = null;
+        incudePaths_ = incudePaths;
 
         String name = getDocumentName( ospath.toString() );
 
