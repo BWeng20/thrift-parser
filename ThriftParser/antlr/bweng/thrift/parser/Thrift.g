@@ -256,7 +256,7 @@ list_separator
     ;
 
 real_base_type
-    :  TYPE_BOOL | TYPE_BYTE | TYPE_I16 | TYPE_I32 | TYPE_I64 | TYPE_DOUBLE | TYPE_STRING | TYPE_BINARY
+    :  TYPE_BOOL | TYPE_BYTE | TYPE_I16 | TYPE_I32 | TYPE_I64 | TYPE_U8 | TYPE_U16 | TYPE_U32 | TYPE_U64 | TYPE_DOUBLE | TYPE_STRING | TYPE_BINARY
     ;
 
 TYPE_BOOL: 'bool';
@@ -264,9 +264,13 @@ TYPE_BYTE: 'byte' | 'int8' ;
 TYPE_I16: 'i16' | 'int16' ;
 TYPE_I32: 'i32' | 'int32' ;
 TYPE_I64: 'i64' | 'int64' ;
-TYPE_DOUBLE: 'double';
+TYPE_DOUBLE: 'float' | 'double';
 TYPE_STRING: 'string';
 TYPE_BINARY: 'binary';
+TYPE_U8:  'uint8' ;
+TYPE_U16: 'uint16' ;
+TYPE_U32: 'uint32' ;
+TYPE_U64: 'uint64' ;
 
 LITERAL
     : (('"' ~'"'* '"') | ('\'' ~'\''* '\''))

@@ -343,6 +343,10 @@ public final class ThriftModelGenerator
         d.all_types_.put(ThriftType.INT16 .name_fully_qualified_, ThriftType.INT16 );
         d.all_types_.put(ThriftType.INT32 .name_fully_qualified_, ThriftType.INT32 );
         d.all_types_.put(ThriftType.INT64 .name_fully_qualified_, ThriftType.INT64 );
+        d.all_types_.put(ThriftType.UINT8 .name_fully_qualified_, ThriftType.UINT8 );
+        d.all_types_.put(ThriftType.UINT16.name_fully_qualified_, ThriftType.UINT16 );
+        d.all_types_.put(ThriftType.UINT32.name_fully_qualified_, ThriftType.UINT32 );
+        d.all_types_.put(ThriftType.UINT64.name_fully_qualified_, ThriftType.UINT64 );
         d.all_types_.put(ThriftType.DOUBLE.name_fully_qualified_, ThriftType.DOUBLE );
         d.all_types_.put(ThriftType.STRING.name_fully_qualified_, ThriftType.STRING );
         d.all_types_.put(ThriftType.BINARY.name_fully_qualified_, ThriftType.BINARY );
@@ -819,6 +823,10 @@ public final class ThriftModelGenerator
             case ThriftParser.TYPE_DOUBLE:   return ThriftType.DOUBLE;
             case ThriftParser.TYPE_STRING:   return ThriftType.STRING;
             case ThriftParser.TYPE_BINARY:   return ThriftType.BINARY;
+            case ThriftParser.TYPE_U8:       return ThriftType.UINT8;
+            case ThriftParser.TYPE_U16:      return ThriftType.UINT16;
+            case ThriftParser.TYPE_U32:      return ThriftType.UINT32;
+            case ThriftParser.TYPE_U64:      return ThriftType.UINT64;
             case ThriftParser.SERVICE_PTR_TYPE: return ThriftType.SERVICE;
             case ThriftParser.LIST:          return gen_listtype(dt);
             case ThriftParser.MAP:           return gen_maptype(dt);

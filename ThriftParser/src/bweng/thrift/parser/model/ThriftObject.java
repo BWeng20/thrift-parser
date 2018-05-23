@@ -18,14 +18,14 @@ public class ThriftObject extends ThriftParserInfo
     /**
      * Version from @version annotation if available.
      * Use regular expression to detect it:
-     *  <pre>@version\s+([0-9\.]+)<br/></pre>
+     *  <pre>@version\s+([0-9\.]+)</pre><br> 
      */
     public String  version_;
 
     /**
-     * Text from comments starting with "@". 
-     * Contains also "version" is available.</br>
-     * The key is the annotation without leading '@'.</br>
+     * Text from comments starting with "@".<br> 
+     * Contains also "version" is available.
+     * The key is the annotation without leading '@'.<br> 
      * The value is the trimmed annotation text until the next newline.
      */
     public Map<String,String>  annotations_;
