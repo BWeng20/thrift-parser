@@ -54,7 +54,7 @@ public final class ThriftModelGenerator
     Map<String,ThriftDocument> loaded_;
 
     Pattern version_pattern_ = Pattern.compile("@version\\s+([0-9\\.]+)", Pattern.CASE_INSENSITIVE);
-
+    Pattern annotation_pattern_ = Pattern.compile("@(\\w+)\\s*(.*)\\s*[\\r\\n]?", Pattern.CASE_INSENSITIVE);
 
     class UnknownType extends ThriftType
     {
@@ -429,6 +429,16 @@ public final class ThriftModelGenerator
            {
                obj.deprecated_ = true;
            }
+
+           Matcher ma = annotation_pattern_.matcher(obj.comment_);
+           while ( ma.find() )
+           {
+               if ( ma.groupCount()>=2 )
+               {
+                   if ( obj.annotations_ == null ) obj.annotations_ = new HashMap<>();
+                   obj.annotations_.put( ma.group(1), ma.group(2).trim() );
+               }
+           }          
         }
     }
 
