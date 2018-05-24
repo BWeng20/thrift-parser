@@ -24,8 +24,6 @@ public class ThriftParserMain {
     {
         try
         {
-            ThriftModelGenerator gen = new ThriftModelGenerator();
-
             String file = null;
             ArrayList<String> includeDirs = new ArrayList<>();
             
@@ -48,7 +46,8 @@ public class ThriftParserMain {
             }
             if ( file != null )
             {
-                ThriftDocument doc = gen.loadDocument(gen.getPath(file), includeDirs );
+                ThriftModelGenerator gen = new ThriftModelGenerator(includeDirs);
+                ThriftDocument doc = gen.loadDocument(gen.getPath(file) );
                 gen.loadIncludes( doc );
                 System.out.println(doc.toString() );
             }

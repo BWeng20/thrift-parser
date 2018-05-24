@@ -64,6 +64,16 @@ public final class ThriftModelGenerator
 
         List<Object> usedin;
     }
+    
+    public ThriftModelGenerator()
+    {
+        this(null);
+    }
+    
+    public ThriftModelGenerator( List<String> incudePaths )
+    {
+        incudePaths_ = incudePaths;
+    }
 
     public synchronized void loadIncludes( ThriftDocument doc )
     {
@@ -216,7 +226,7 @@ public final class ThriftModelGenerator
                         ic.doc_ = loaded_.get(uriS);
                         if ( ic.doc_ == null )
                         {
-                            ic.doc_ = loadDocument( ic.ospath_, incudePaths_ );
+                            ic.doc_ = loadDocument( ic.ospath_ );
                             loaded_.put(uriS, ic.doc_ );
                         }
                     }
@@ -288,13 +298,7 @@ public final class ThriftModelGenerator
 
     public ThriftDocument loadDocument( Path ospath ) throws IOException
     {
-        return loadDocument( ospath, null ); 
-    }
-    
-    public synchronized ThriftDocument loadDocument( Path ospath, List<String> incudePaths ) throws IOException
-    {
         ThriftDocument doc = null;
-        incudePaths_ = incudePaths;
 
         String name = getDocumentName( ospath.toString() );
 
