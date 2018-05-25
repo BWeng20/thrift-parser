@@ -64,12 +64,12 @@ public final class ThriftModelGenerator
 
         List<Object> usedin;
     }
-    
+
     public ThriftModelGenerator()
     {
         this(null);
     }
-    
+
     public ThriftModelGenerator( List<String> incudePaths )
     {
         incudePaths_ = incudePaths;
@@ -478,7 +478,7 @@ public final class ThriftModelGenerator
                    if ( obj.annotations_ == null ) obj.annotations_ = new HashMap<>();
                    obj.annotations_.put( ma.group(1), ma.group(2).trim() );
                }
-           }          
+           }
         }
     }
 
@@ -728,7 +728,7 @@ public final class ThriftModelGenerator
         lt.setDocument(doc_);
         if ( 0 < dt.getChildCount() )
         {
-            lt.value_type_ = gen_fieldtype( (CommonTree)dt.getChild(1) );
+            lt.value_type_ = gen_fieldtype( (CommonTree)dt.getChild(0) );
         }
         return lt;
     }
@@ -763,7 +763,7 @@ public final class ThriftModelGenerator
                          long vi = get_integer((CommonTree)ct.getChild(0));
                          if ( vi >= Integer.MIN_VALUE || vi <= Integer.MAX_VALUE)
                              autoVal = (int)vi;
-                    }                   
+                    }
                     env.value_ = autoVal++;
                     en.values_.add(env);
                     break;
