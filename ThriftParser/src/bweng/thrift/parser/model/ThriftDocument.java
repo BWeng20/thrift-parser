@@ -39,6 +39,7 @@ public class ThriftDocument extends ThriftScope
 
     /**
      * Gets a human readable description of all packages/services.
+     * @return Textual representation.
      */
     @Override
     public String toString()
@@ -47,7 +48,7 @@ public class ThriftDocument extends ThriftScope
     }
 
     /**
-     * Checks all services for validity.<br/>
+     * Checks all services for validity.<p>
      * Packages are not checked as their validity is already covered by the global service-list.
      * @return true if all services are valid.
      */

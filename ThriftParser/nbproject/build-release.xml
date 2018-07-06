@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="ThriftParser_Release" default="all" basedir=".">
+
+    <target name="create_alljar" depends="-post-jar" >
+        <property name="store.jar.name" value="ThriftParser"/>
+        <property name="store.dir" value="release"/>
+        <property name="store.jar" value="${store.dir}/${store.jar.name}.jar"/>
+        <echo message="Packaging ${application.title} into a single JAR at ${store.jar}"/>
+        <delete dir="${store.dir}"/>
+        <mkdir dir="${store.dir}"/>
+        <jar destfile="${store.dir}/temp_final.jar" filesetmanifest="skip">
+            <zipgroupfileset dir="dist" includes="*.jar"/>
+            <zipgroupfileset dir="libs" includes="antlr-runtime*.jar"/>
+            <zipfileset file="libs/Antlr-3.5.2-LICENSE.txt" prefix="META-INF/"/>
+            <zipgroupfileset dir="libs" includes="juniversalchardet*.jar"/>
+            <zipfileset file="libs/mozilla-LICENSE.txt" prefix="META-INF/"/>
+            <manifest>
+                <attribute name="Main-Class" value="bweng.thrift.parser.ThriftParserMain"/>
+            </manifest>
+        </jar>
+        <zip destfile="${store.jar}">
+            <zipfileset src="${store.dir}/temp_final.jar"
+            excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
+        </zip>
+        <delete file="${store.dir}/temp_final.jar"/>   
+    </target>
+    
+    <target name="create_release" depends="-javadoc-build,-post-jar,create_alljar" >
+          <jar basedir="src" destfile="release/${ant.project.name}-sources.jar"/>
+          <jar basedir="dist/javadoc" destfile="release/${ant.project.name}-javadoc.jar"/>
+    </target>
+</project>
