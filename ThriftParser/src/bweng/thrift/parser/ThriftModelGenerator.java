@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
 * Licensed under the MIT License.
 * See LICENSE file for details.
 */
@@ -6,8 +6,10 @@ package bweng.thrift.parser;
 
 import bweng.thrift.parser.model.*;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -31,51 +33,80 @@ import org.antlr.runtime.TokenStream;
 import org.antlr.runtime.tree.CommonTree;
 import org.mozilla.universalchardet.UniversalDetector;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.Map.Entry;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
 * Generates our Data model from Antlr parser results.
 */
 public final class ThriftModelGenerator
 {
-    ThriftDocument doc_;
-    // Current package [DAI Extension]
-    ThriftPackage  current_package_;
-
-    // All types not resolved so far
-    public Map<String, ThriftType> global_types_;
-
-    // All services not resolved so far
-    public Map<String, ThriftService> global_services_;
-
-    ThriftCommentTokenSource tokensource_;
-    ThriftParser   parser_;
-    TokenStream tokens_;
-
-    Map<String,ThriftDocument> loaded_;
-    List<String> incudePaths_;
-
-    Pattern version_pattern_ = Pattern.compile("@version\\s+([0-9\\.]+)", Pattern.CASE_INSENSITIVE);
-    Pattern annotation_pattern_ = Pattern.compile("@(\\w+)\\s*(.*)\\s*[\\r\\n]?", Pattern.CASE_INSENSITIVE);
-
-    class UnknownType extends ThriftType
-    {
-        ThriftPackage used_in_package;
-        String name;
-
-        List<Object> usedin;
-    }
-
+    /**
+     * Creates a model generator.
+     */
     public ThriftModelGenerator()
     {
         this(null);
     }
 
+    /**
+     * Creates a model generator with additional include paths.
+     * @param incudePaths Additional paths to locate for includes.
+     */
     public ThriftModelGenerator( List<String> incudePaths )
     {
         incudePaths_ = incudePaths;
     }
 
-    public synchronized void loadIncludes( ThriftDocument doc )
+    /**
+     * Get a Path object for some native file path.
+     */
+    public static Path getPath( String ospath )
+    {
+        URI uri = null;
+        try
+        {
+            uri = new URI(ospath);
+        }
+        catch (URISyntaxException uriex)
+        {
+        }
+
+        if ( uri != null && "jar".equalsIgnoreCase( uri.getScheme() ))
+        {
+            FileSystem fs=null;
+            int si = ospath.indexOf("!");
+            String arc = ospath.substring(0,si);
+            try
+            {
+                URI fsuri = new URI( arc );
+                try
+                {
+                    fs = FileSystems.getFileSystem(fsuri);
+                }
+                catch ( FileSystemNotFoundException fsnf)
+                {
+                    fs =  FileSystems.newFileSystem(fsuri, new HashMap<String, Object>());
+                }
+                return fs.getPath(ospath.substring(si+1));
+            }
+            catch (Exception ex2)
+            {
+            }
+        }
+        return FileSystems.getDefault().getPath(ospath);
+    }
+
+    /**
+     * Loads all includes of the document and tries to resolve all types.
+     * @param doc              The document with includes.
+     * @param bReplaceTypeRefs If true all type-references as Type-Definitions and previous
+     *                         unresolved Type-References are replaced by the underlying type.
+     */
+    public synchronized void loadIncludes( ThriftDocument doc, boolean bReplaceTypeRefs )
     {
         loaded_ = new HashMap<>();
         loadIncludesInternal( doc );
@@ -85,8 +116,210 @@ public final class ThriftModelGenerator
         global_services_= new HashMap<>();
 
         collect_references( doc );
-        resolve_all( doc );
+        resolve_all( doc, bReplaceTypeRefs );
+    }
 
+    /**
+     * Loads all Thrift files from an Zip-Archive, filtered by a regular expression.
+     * Types and services are resolved as far as possible.
+     * Include directives in the thrift files are ignored.
+     * @param regex If null, no filter is applies.
+     */
+    public ThriftDocument loadZipArchive( Path ospath, Pattern regex ) throws IOException
+    {
+        ThriftDocument doc = null;
+
+        final String name = getDocumentName( ospath.toString() );
+
+        ZipFile zf = new  ZipFile(ospath.toFile());
+
+        byte[] buffer = new byte[4*1024];
+        ByteArrayOutputStream bs = new ByteArrayOutputStream();
+
+        Enumeration<? extends ZipEntry> entries = zf.entries();
+        while( entries.hasMoreElements() )
+        {
+            ZipEntry ze = entries.nextElement();
+            if ( regex == null || regex.matcher( ze.getName() ).matches() )
+            {
+                bs.reset();
+                final InputStream is = zf.getInputStream(ze);
+                while( true )
+                {
+                    int r = is.read(buffer);
+                    if (r == -1) break;
+                    bs.write(buffer, 0, r);
+                }
+                final byte[] content = bs.toByteArray();
+                if ( content != null && content.length > 0)
+                {
+                    ThriftDocument zd = parseDocument( content, name );
+                    if ( zd != null )
+                    {
+                        if ( doc != null )
+                        {
+                            merge( doc, zd);
+                        }
+                        else
+                            doc = zd;
+                        // Skip all includes.
+                        doc.includes_.clear();
+                    }
+                }
+            }
+        }
+        if ( doc != null )
+        {
+           global_types_   = new HashMap<>();
+           global_services_= new HashMap<>();
+
+           collect_references( doc );
+           resolve_all( doc, true );
+
+           doc.ospath_ = ospath;
+        }
+        return doc;
+    }
+
+    /**
+     * Loads all Thrift files from an Zip-Archive.
+     * Filters entries by extension ".*\.thrift".
+     * @param ospath The path to the archive to load.
+     * @return The joined Thrift documents. Same as if all thrift documents would be copied in one file.
+     */
+    public ThriftDocument loadZipArchive( Path ospath ) throws IOException
+    {
+        return loadZipArchive(ospath, Pattern.compile(".*\\.thrift", Pattern.CASE_INSENSITIVE) );
+    }
+
+    /**
+     * Loads a thrift document by file path.
+     * @param ospath The path to the file to load.
+     * @return The parsed Thrift document or null if parser failed.
+     */
+    public ThriftDocument loadDocument( Path ospath ) throws IOException
+    {
+        ThriftDocument doc = parseDocument( Files.readAllBytes(ospath), getDocumentName( ospath.toString() ) );
+        if ( doc != null )
+           doc.ospath_ = ospath;
+        return doc;
+    }
+
+    private ThriftDocument doc_;
+    // Current package [DAI Extension]
+    private ThriftPackage  current_package_;
+
+    // All types not resolved so far
+    private Map<String, ThriftType> global_types_;
+
+    // All services not resolved so far
+    private Map<String, ThriftService> global_services_;
+
+    private ThriftCommentTokenSource tokensource_;
+    private ThriftParser   parser_;
+    private TokenStream tokens_;
+
+    private Map<String,ThriftDocument> loaded_;
+    private List<String> incudePaths_;
+
+    private final static Pattern version_pattern_ = Pattern.compile("@version\\s+([0-9\\.]+)", Pattern.CASE_INSENSITIVE);
+    private final static Pattern annotation_pattern_ = Pattern.compile("@(\\w+)\\s*(.*)\\s*[\\r\\n]?", Pattern.CASE_INSENSITIVE);
+
+    static class UnknownType extends ThriftType
+    {
+        ThriftPackage used_in_package;
+        String name;
+
+        List<Object> usedin;
+
+        @Override
+        public boolean valid()
+        {
+            return false;
+        }
+    }
+
+    private ThriftType tryGetRealType( ThriftType t  )
+    {
+        if ( t != null )
+        {
+            ThriftType rt = t.getRealType();
+            if ( rt != null )
+                return rt;
+        }
+        return t;
+    }
+
+    private void removeReferenceTypes( ThriftField field )
+    {
+        field.type_ = tryGetRealType( field.type_ );
+    }
+
+    private void removeReferenceTypes( List<ThriftField> fields )
+    {
+        if ( fields != null )
+            for ( ThriftField f : fields ) removeReferenceTypes(f);
+    }
+
+    /**
+     * Removes any TypeRef or TypeDef types and exchange the references in all structures.
+     */
+    private void removeReferenceTypes( ThriftDocument doc )
+    {
+        Iterator<Entry<String, ThriftType> > typeMapIt = doc.all_types_.entrySet().iterator();
+        while ( typeMapIt.hasNext() )
+        {
+            ThriftType t = typeMapIt.next().getValue();
+            if ( t instanceof ThriftTypeRef || t instanceof ThriftTypedef)
+            {
+                typeMapIt.remove();
+            }
+            else if ( t instanceof ThriftListType )
+            {
+                ((ThriftListType)t).value_type_ = tryGetRealType(((ThriftListType)t).value_type_);
+            }
+            else if ( t instanceof ThriftMapType )
+            {
+                ThriftMapType mt = (ThriftMapType)t;
+                mt.key_type_   = tryGetRealType(mt.key_type_);
+                mt.value_type_ = tryGetRealType(mt.value_type_);
+            }
+            else if ( t instanceof ThriftSetType )
+            {
+                ((ThriftSetType)t).value_type_ = tryGetRealType(((ThriftSetType)t).value_type_);
+            }
+            else if ( t instanceof ThriftUnionType )
+            {
+                removeReferenceTypes( ((ThriftUnionType)t).fields_ );
+            }
+            else if ( t instanceof ThriftStructType )
+            {
+                removeReferenceTypes( ((ThriftStructType)t).fields_ );
+            }
+        }
+
+        for ( ThriftPackage pk : doc.all_packages_ )
+        {
+            Iterator<ThriftType> typeIt = pk.types_.iterator();
+            while ( typeIt.hasNext() )
+            {
+                ThriftType t = typeIt.next();
+                if ( t instanceof ThriftTypeRef || t instanceof ThriftTypedef)
+                {
+                    typeIt.remove();
+                }
+            }
+        }
+
+        for ( ThriftService s : doc.all_services_ )
+        {
+            for ( ThriftFunction f : s.functions_)
+            {
+                removeReferenceTypes( f.exceptions_ );
+                removeReferenceTypes( f.parameters_ );
+                f.return_type_ = tryGetRealType(f.return_type_);
+            }
+        }
     }
 
     private  void collect_references( ThriftDocument doc )
@@ -116,19 +349,19 @@ public final class ThriftModelGenerator
             {
                 if ( sv.extended_service_ != null && sv.extended_service_.resolvedService_ == null )
                 {
-                    doc.unresolved_services_.put( sv.extended_service_.declaredName_, sv.extended_service_ );
+                    doc.unresolved_services_.add( sv.extended_service_ );
                 }
                 global_services_.put( sv.name_fully_qualified_, sv);
             }
         }
     }
 
-    private void resolve_all( ThriftDocument doc )
+    private void resolve_all( ThriftDocument doc, boolean bExchangeTypeReferences )
     {
         if ( doc != null )
         {
             for (int i=0 ; i<doc.includes_.size() ; ++i)
-                 resolve_all( doc.includes_.get(i).doc_ );
+                 resolve_all( doc.includes_.get(i).doc_, bExchangeTypeReferences );
 
             Iterator<ThriftTypeRef> it = doc.unresolved_types_.values().iterator();
             while ( it.hasNext() )
@@ -158,18 +391,19 @@ public final class ThriftModelGenerator
                     }
                 }
             }
-            Iterator<ThriftServiceRef> itServ = doc.unresolved_services_.values().iterator();
+            if ( bExchangeTypeReferences )
+                removeReferenceTypes(doc);
+
+            Iterator<ThriftServiceRef> itServ = doc.unresolved_services_.iterator();
             while ( itServ.hasNext() )
             {
                 ThriftServiceRef svr = itServ.next();
 
                 if ( null == svr.resolvedService_ )
-                {
                     svr.resolvedService_ = global_services_.get(svr.declaredName_ );
-                    if ( null != svr.resolvedService_)
-                    {
-                        itServ.remove();
-                    }
+                if ( null != svr.resolvedService_)
+                {
+                    itServ.remove();
                 }
             }
         }
@@ -249,7 +483,7 @@ public final class ThriftModelGenerator
     }
 
     // Gets the name of the document from the file path.
-    public static String getDocumentName( String ospath )
+    private static String getDocumentName( String ospath )
     {
        File f = new File(ospath);
        String name = f.getName();
@@ -259,52 +493,292 @@ public final class ThriftModelGenerator
        return name;
     }
 
-    static public Path getPath( String ospath )
+    /**
+     * Merge two list of types.
+     * Existing resolves types are not overwritten.
+     */
+    private static void mergeTypes( Collection<ThriftType> dst, Collection<ThriftType> src)
     {
-        URI uri = null;
-        try
+        HashMap<String, ThriftType> types = new HashMap<>(dst.size()+src.size());
+        for ( ThriftType t : dst)
+            types.put(t.name_fully_qualified_, t);
+        for ( ThriftType t : src)
         {
-            uri = new URI(ospath);
-        }
-        catch (URISyntaxException uriex)
-        {
-        }
-
-        if ( uri != null && "jar".equalsIgnoreCase( uri.getScheme() ))
-        {
-            FileSystem fs=null;
-            int si = ospath.indexOf("!");
-            String arc = ospath.substring(0,si);
-            try
+            ThriftType tt = types.get(t.name_fully_qualified_);
+            if ( tt != null)
             {
-                URI fsuri = new URI( arc );
-                try
+                if ( tt instanceof ThriftTypedef )
                 {
-                    fs = FileSystems.getFileSystem(fsuri);
+                    ThriftTypedef tdef = (ThriftTypedef)tt;
+                    if (tdef.reftype_ == null )
+                    {
+                        tdef.reftype_ = t.getRealType();
+                        dst.add(t);
+                    }
                 }
-                catch ( FileSystemNotFoundException fsnf)
+                else if ( tt instanceof ThriftTypeRef )
                 {
-                    fs =  FileSystems.newFileSystem(fsuri, new HashMap<String, Object>());
+                    ThriftTypeRef tref = (ThriftTypeRef)tt;
+                    if (tref.resolvedType_ == null )
+                    {
+                        tref.resolvedType_ = t.getRealType();
+                        dst.add(t);
+                    }
                 }
-                return fs.getPath(ospath.substring(si+1));
             }
-            catch (Exception ex2)
+            else
             {
+                dst.add(t);
+                types.put(t.name_fully_qualified_, t);
             }
         }
-        return FileSystems.getDefault().getPath(ospath);
-
     }
 
-    public ThriftDocument loadDocument( Path ospath ) throws IOException
+    /**
+     * Returns true if both scopes are the same name-space.
+     */
+    private static boolean inSameScope(ThriftScope sp1, ThriftScope sp2)
+    {
+        return (sp1.name_fully_qualified_ == null || sp1.name_fully_qualified_.isEmpty())
+               ? (sp2.name_fully_qualified_ == null || sp2.name_fully_qualified_.isEmpty())
+               : sp1.name_fully_qualified_.equals(sp2.name_fully_qualified_);
+    }
+
+
+   /**
+    * Merges scopes if both represent the same name-scope.
+    */
+    private static boolean merge( ThriftScope dst, ThriftScope src )
+    {
+        if ( dst == null || src == null || src == dst || !inSameScope(dst,src))
+            return false;
+
+        if ( src.services_ != null && !src.services_.isEmpty())
+        {
+            if ( dst.services_ != null && !dst.services_.isEmpty())
+            {
+                HashMap<String, ThriftService> services = new HashMap<>(dst.services_.size()+src.services_.size());
+                for ( ThriftService s : dst.services_)
+                    services.put(s.name_fully_qualified_, s);
+
+                for ( ThriftService s : src.services_)
+                {
+                    if ( !services.containsKey(s.name_fully_qualified_))
+                    {
+                        dst.services_.add(s);
+                        services.put(s.name_fully_qualified_, s);
+                    }
+                }
+            }
+            else
+                dst.services_ = src.services_;
+        }
+
+        if ( src.types_ != null && !src.types_.isEmpty())
+        {
+            if ( dst.types_ != null && !dst.types_.isEmpty())
+            {
+                mergeTypes( dst.types_, src.types_ );
+            }
+            else
+                dst.types_ = src.types_;
+        }
+        return true;
+    }
+
+    /**
+     * Merges an other package into this one if both represent the same name-scope.
+     */
+    private static boolean merge( ThriftPackage dst, ThriftPackage src  )
+    {
+        if ( !merge((ThriftScope)dst,(ThriftScope)src) ) return false;
+
+        if ( src.subpackages_ != null )
+        {
+            if( dst.subpackages_ != null)
+            {
+                HashMap<String,ThriftPackage> ip = new HashMap<>();
+                for ( ThriftPackage p : dst.subpackages_)
+                    ip.put(p.name_fully_qualified_, p);
+
+                for ( ThriftPackage p :  src.subpackages_)
+                {
+                    ThriftPackage tp = ip.get(p.name_fully_qualified_);
+                    if ( tp == null )
+                        dst.subpackages_.add(p);
+                    else
+                    {
+                        merge( tp, p );
+                    }
+                }
+            }
+            else
+                dst.subpackages_=src.subpackages_;
+        }
+
+        return true;
+    }
+
+   /**
+    * Merges an other document into this one.
+    */
+    private static boolean merge( ThriftDocument dst, ThriftDocument src )
+    {
+        if ( !merge((ThriftScope)dst, (ThriftScope)src)) return false;
+
+        if ( src.includes_ != null )
+        {
+            if ( dst.includes_ != null )
+            {
+                // Merge includes:
+                //  try to idententify identical includes and take over loaded documents.
+
+                HashMap<String,ThriftInclude> ibypath = new HashMap<>();
+                HashMap<String,ThriftInclude> ibyval = new HashMap<>();
+                for ( ThriftInclude i : dst.includes_ )
+                {
+                    if ( i.ospath_ != null ) ibypath.put(i.ospath_.toString(), i);
+                    if ( i.path_ != null ) ibyval.put(i.path_, i);
+                }
+
+                for ( ThriftInclude i : src.includes_ )
+                {
+                    if ( i != null )
+                    {
+                        ThriftInclude ti = null;
+                        if (i.ospath_ != null)
+                        {
+                            ti = ibypath.get( i.ospath_.toString() );
+                        }
+                        if ( ti == null && i.path_ != null )
+                        {
+                            ti = ibyval.get( i.path_.toString() );
+                        }
+
+                        if ( ti != null )
+                        {
+                           if ( ti.doc_ == null ) ti.doc_ = i.doc_;
+                           if ( ti.ospath_ != null ) ti.ospath_ = i.ospath_;
+                        }
+                        else
+                        {
+                            dst.includes_.add( i );
+                            if ( i.ospath_ != null ) ibypath.put(i.ospath_.toString(), i);
+                            if ( i.path_ != null ) ibyval.put(i.path_, i);
+                        }
+                    }
+                }
+            }
+            else
+                dst.includes_ = src.includes_;
+        }
+
+        if ( src.all_packages_ != null )
+        {
+            if ( dst.all_packages_ != null )
+            {
+                // try to idententify identical packages and merge data.
+                HashMap<String,ThriftPackage> ip = new HashMap<>();
+                for ( ThriftPackage p : dst.all_packages_)
+                    ip.put(p.name_fully_qualified_, p);
+
+                for ( ThriftPackage p :  src.all_packages_)
+                {
+                    ThriftPackage tp = ip.get(p.name_fully_qualified_);
+                    if ( tp == null )
+                        dst.all_packages_.add(p);
+                    else
+                    {
+                        merge( tp, p );
+                    }
+                }
+            }
+            else
+                dst.all_packages_ = src.all_packages_;
+        }
+
+        if ( src.all_services_byname_ != null )
+        {
+            // all_services_ and all_services_byname_ should always be in sync.
+            // Handle them as one:
+
+            if ( dst.all_services_byname_ == null )
+            {
+                // Take over.
+                dst.all_services_byname_ = src.all_services_byname_;
+                dst.all_services_ = src.all_services_;
+            }
+            else
+            {
+                if (dst.all_services_== null) dst.all_services_= new ArrayList<>();
+
+                for ( Map.Entry<String,ThriftService> k : src.all_services_byname_.entrySet())
+                {
+                    if (!dst.all_services_byname_.containsKey(k.getKey()))
+                    {
+                        dst.all_services_byname_.put(k.getKey(), k.getValue() );
+                        dst.all_services_.add(k.getValue());
+                    }
+                }
+            }
+        }
+
+        if (src.all_types_ != null )
+        {
+            ArrayList<ThriftType> alltypes = new ArrayList<>(dst.all_types_.size());
+            alltypes.addAll( dst.all_types_.values() );
+
+            ArrayList<ThriftType> doc_alltypes = new ArrayList<>(src.all_types_.size());
+            doc_alltypes.addAll( src.all_types_.values() );
+
+            mergeTypes( alltypes, doc_alltypes);
+
+            for ( ThriftType t : alltypes )
+                dst.all_types_.put(t.name_fully_qualified_, t);
+        }
+
+        if (src.unresolved_types_ != null )
+        {
+            // A simple merge will not work if same types are in both list.
+            // We need to link the type-refs.
+            if ( dst.unresolved_types_ != null )
+            {
+                for ( Entry<String,ThriftTypeRef> entry : src.unresolved_types_.entrySet() )
+                {
+                    ThriftTypeRef org = dst.unresolved_types_.get(entry.getKey());
+                    if ( org == null )
+                        dst.unresolved_types_.put(entry.getKey(),entry.getValue());
+                    else
+                    {
+                        entry.getValue().resolvedType_ = org;
+                    }
+                }
+            }
+            else
+                dst.unresolved_types_ = src.unresolved_types_;
+        }
+
+        if (src.unresolved_services_ != null )
+        {
+            if ( dst.unresolved_services_ != null )
+                dst.unresolved_services_.addAll(src.unresolved_services_ );
+            else
+                dst.unresolved_services_ = src.unresolved_services_;
+        }
+        return true;
+    }
+
+    /**
+     * Parses a document from byte buffer.
+     * @param content Textual thrift-document.
+     * @param name Name of document.
+     */
+    private ThriftDocument parseDocument( byte[] content, String name )
     {
         ThriftDocument doc = null;
 
-        String name = getDocumentName( ospath.toString() );
-
-        byte[] fileBuffer = Files.readAllBytes(ospath);
         UniversalDetector detector = new UniversalDetector(null);
-        detector.handleData( fileBuffer, 0, fileBuffer.length);
+        detector.handleData( content, 0, content.length);
         detector.dataEnd();
         String charsetName = detector.getDetectedCharset();
 
@@ -316,22 +790,24 @@ public final class ThriftModelGenerator
 
         if (charset != null)
         {
-           doc = generateModel(name, new ThriftLexer(new ANTLRReaderStream(
-               new InputStreamReader( new ByteArrayInputStream(fileBuffer),charset ))));
+           try
+           {
+               doc = generateModel(name, new ThriftLexer(new ANTLRReaderStream(
+                   new InputStreamReader( new ByteArrayInputStream(content),charset ))));
+           } catch ( IOException e )
+           {
+               System.err.println( name+": internal i/o error: "+e.getMessage());
+           }
         }
         else
         {
            System.err.println( name+": failed to detect encoding.");
         }
 
-        if ( doc != null )
-        {
-           doc.ospath_ = ospath;
-        }
         return doc;
     }
 
-    public synchronized ThriftDocument generateModel( String name, ThriftLexer lex )
+    private synchronized ThriftDocument generateModel( String name, ThriftLexer lex )
     {
         tokensource_ = new ThriftCommentTokenSource( lex, ThriftLexer.DEFAULT_TOKEN_CHANNEL, ThriftLexer.COMMENT );
         tokens_ = new CommonTokenStream(tokensource_);
@@ -345,6 +821,7 @@ public final class ThriftModelGenerator
         }
         catch (RecognitionException ex)
         {
+
           ex.printStackTrace();
         }
 
@@ -369,7 +846,7 @@ public final class ThriftModelGenerator
         d.all_packages_ = new ArrayList<>();
         d.includes_ = new ArrayList<>();
         d.unresolved_types_= new HashMap<>();
-        d.unresolved_services_= new HashMap<>();
+        d.unresolved_services_= new ArrayList<>();
         d.types_ = new ArrayList<>();
         d.all_types_ = new HashMap<String, ThriftType>();
         // Add all default types to list
@@ -416,7 +893,7 @@ public final class ThriftModelGenerator
             }
         }
         //   Service references
-        Iterator<ThriftServiceRef> itSv = doc_.unresolved_services_.values().iterator();
+        Iterator<ThriftServiceRef> itSv = doc_.unresolved_services_.iterator();
         while ( itSv.hasNext() )
         {
             ThriftServiceRef svr = itSv.next();

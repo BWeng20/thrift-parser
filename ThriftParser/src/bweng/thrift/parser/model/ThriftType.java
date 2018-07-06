@@ -1,10 +1,8 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
 package bweng.thrift.parser.model;
-
-import bweng.thrift.parser.ThriftParser;
 
 /**
  * Part of the data model, representing a Thrift Type.
@@ -14,13 +12,13 @@ public class ThriftType extends ThriftObject
     public String name_fully_qualified_;
     public String name_;
     public ThriftPackage package_;
-   
+
     @Override
     public String toString()
     {
         return name_;
-    }    
-    
+    }
+
     public final static ThriftType BOOL;
     public final static ThriftType INT8;
     public final static ThriftType INT16;
@@ -34,8 +32,27 @@ public class ThriftType extends ThriftObject
     public final static ThriftType STRING;
     public final static ThriftType BINARY;
     public final static ThriftType VOID;
-    
-    public final static ThriftType SERVICE;    
+
+    public final static ThriftType SERVICE;
+
+    /**
+     * Resolves Type-references and ThriftTypeDef, returning the inner real type.
+     * @return The real type or null.
+     */
+    public ThriftType getRealType()
+    {
+        ThriftType type = this;
+        while (true)
+        {
+            if (type instanceof ThriftTypeRef)
+                type = ((ThriftTypeRef) type).resolvedType_;
+            else if ( type instanceof ThriftTypedef)
+                type = ((ThriftTypedef)type).reftype_;
+            else
+                break;
+        }
+        return type;
+    }
 
     static
     {
@@ -51,8 +68,17 @@ public class ThriftType extends ThriftObject
         DOUBLE = new ThriftType(); DOUBLE.name_ = DOUBLE.name_fully_qualified_  = "double";
         STRING = new ThriftType(); STRING.name_ = STRING.name_fully_qualified_  = "string";
         BINARY = new ThriftType(); BINARY.name_ = BINARY.name_fully_qualified_  = "binary";
-        VOID   = new ThriftType(); VOID.name_   = VOID.name_fully_qualified_    = "void";      
+        VOID   = new ThriftType(); VOID.name_   = VOID.name_fully_qualified_    = "void";
         SERVICE= new ThriftType(); SERVICE.name_= SERVICE.name_fully_qualified_ = "service*";
     }
-    
+
+   /**
+    * Checks if this type is valid.
+    * @return true if type is valid.
+    */
+    @Override
+    public boolean valid()
+    {
+        return true;
+    }
 }

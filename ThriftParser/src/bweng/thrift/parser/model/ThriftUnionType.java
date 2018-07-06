@@ -20,4 +20,18 @@ public class ThriftUnionType extends ThriftType
         return "union " + name_fully_qualified_ + fields_.toString();
     }
 
+   /**
+    * Checks if all sub-types are valid.
+    * @return true if all sub-types are valid.
+    */
+    @Override
+    public boolean valid()
+    {
+        if ( fields_ != null )
+        {
+            for ( ThriftField f : fields_ ) if ( !f.valid() ) return false;
+        }
+        return true;
+    }
+
 }

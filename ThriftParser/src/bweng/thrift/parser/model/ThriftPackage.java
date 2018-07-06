@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
@@ -80,4 +80,17 @@ public class ThriftPackage extends ThriftScope
         }
         return null;
     }
+
+    /**
+     * Checks all services and sub-packages for validity.
+     * @return true if all services and packages are valid.
+     */
+    @Override
+    public boolean valid()
+    {
+        if ( !super.valid() ) return false;
+        for ( ThriftPackage p : subpackages_ ) if (!p.valid()) return false;
+        return true;
+    }
+
 }

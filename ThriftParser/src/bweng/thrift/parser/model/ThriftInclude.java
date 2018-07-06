@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
@@ -11,9 +11,13 @@ import java.nio.file.Path;
  */
 public class ThriftInclude extends ThriftParserInfo
 {
+    /** The given path from thrift include directive. */
     public String path_;
 
+    /** The resolved path, based on the path of the including document. */
     public Path ospath_;
+
+    /** The document. */
     public ThriftDocument doc_;
 
 }

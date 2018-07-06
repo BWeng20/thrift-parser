@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
@@ -19,4 +19,15 @@ public class ThriftStructType extends ThriftType
         return "struct " + name_fully_qualified_ + fields_.toString();
     }
 
+   /**
+    * Checks if all used types are valid.
+    * @return true if all types are valid.
+    */
+    @Override
+    final public boolean valid()
+    {
+        if ( fields_ == null ) return false;
+        for (ThriftField f : fields_) if ( !f.valid() ) return false;
+        return true;
+    }
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
@@ -22,4 +22,14 @@ public final class ThriftField extends ThriftObject
                 : "?" ) + ' ' + name_;
     }
 
+
+   /**
+    * Checks if the field type is valid.
+    * @return true if type is valid.
+    */
+    @Override
+    final public boolean valid()
+    {
+        return ( type_ != null && type_.valid() );
+    }
 }

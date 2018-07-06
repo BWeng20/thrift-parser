@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
@@ -12,32 +12,32 @@ import org.antlr.runtime.TokenSource;
 /**
  * TokenSource that stores comments to add them later to Thrift elements.
  */
-public class ThriftCommentTokenSource implements TokenSource 
+public class ThriftCommentTokenSource implements TokenSource
 {
   private final TokenSource source_;
   private final int tokenType_;
   private final int contentChannel_;
   private final StringBuilder collectedContent_ = new StringBuilder();
   private int currentline_ = -1;
- 
+
   class CommentEntry
   {
     public int line;
     public String comment;
   };
   private final ArrayList<CommentEntry> comments_= new ArrayList<>(1000);
-  
-  public ThriftCommentTokenSource(TokenSource source, int contentChannel, int commmentTokenType ) 
+
+  public ThriftCommentTokenSource(TokenSource source, int contentChannel, int commmentTokenType )
   {
     this.source_ = source;
     this.contentChannel_ = contentChannel;
     this.tokenType_ = commmentTokenType;
   }
-  
+
   private void addComment( )
   {
       String x = collectedContent_.toString();
-     
+
       if ( x.length() > 0 )
       {
           collectedContent_.setLength(0);
@@ -55,21 +55,21 @@ public class ThriftCommentTokenSource implements TokenSource
           ne.comment = x;
           ne.line = currentline_;
           comments_.add( ne );
-          
+
     // System.out.println( "+"+ne.line+":" + x);
 
       }
   }
- 
+
   /**
    * Returns next token from the wrapped token source. Stores it
    * in a list if necessary.
    */
   @Override
-  public Token nextToken() 
+  public Token nextToken()
   {
     CommonToken nextToken = (CommonToken)source_.nextToken();
-      
+
     if (nextToken.getType() == tokenType_ )
     {
         if ( currentline_ == nextToken.getLine() )
@@ -90,8 +90,8 @@ public class ThriftCommentTokenSource implements TokenSource
     return nextToken;
   }
 
-  public String collectComment(int line ) 
-  {      
+  public String collectComment(int line )
+  {
       String ct = "";
       CommentEntry oe= null;
       int bestIdx = -1;

@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
@@ -35,15 +35,28 @@ public class ThriftDocument extends ThriftScope
     public Map<String, ThriftTypeRef> unresolved_types_;
 
     /** All yet unresolved services in this document. */
-    public Map<String, ThriftServiceRef> unresolved_services_;
+    public List<ThriftServiceRef> unresolved_services_;
 
     /**
-     * Gets a human readable description.
+     * Gets a human readable description of all packages/services.
      */
     @Override
     public String toString()
     {
         return ""+(0<all_packages_.size()?all_packages_:all_services_);
+    }
+
+    /**
+     * Checks all services for validity.<br/>
+     * Packages are not checked as their validity is already covered by the global service-list.
+     * @return true if all services are valid.
+     */
+    @Override
+    public boolean valid()
+    {
+        if ( all_services_ != null )
+            for ( ThriftService s : all_services_ ) if (!s.valid()) return false;
+        return true;
     }
 
 }

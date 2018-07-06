@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
@@ -28,5 +28,18 @@ public class ThriftFunction extends ThriftObject
         if ( !exceptions_.isEmpty() )
             sb.append(" throws ").append(exceptions_);
         return sb.toString();
+    }
+
+    /**
+     * Checks if parameters, exceptions and the return type are valid.
+     * @return true if all used types are valid.
+     */
+    @Override
+    final public boolean valid()
+    {
+        if ( parameters_ != null ) for ( ThriftField p : parameters_ ) if (!p.valid()) return false;
+        if ( exceptions_ != null ) for ( ThriftField p : exceptions_ ) if (!p.valid()) return false;
+
+        return ( return_type_ != null && return_type_.valid() );
     }
 }

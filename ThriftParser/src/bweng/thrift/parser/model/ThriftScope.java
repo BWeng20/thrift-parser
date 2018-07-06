@@ -1,4 +1,4 @@
-/* Copyright (c) 2015 Bernd Wengenroth
+/* Copyright (c) 2015-2018 Bernd Wengenroth
  * Licensed under the MIT License.
  * See LICENSE file for details.
  */
@@ -24,5 +24,16 @@ public class ThriftScope extends ThriftObject
 
     /** Types that belong to this scope only. */
     public List<ThriftType> types_ = new ArrayList<>();
+
+    /**
+     * Checks all services for validity.
+     * @return true if all services are valid.
+     */
+    @Override
+    public boolean valid()
+    {
+        for ( ThriftService s : services_ ) if (!s.valid()) return false;
+        return true;
+    }
 
 }
