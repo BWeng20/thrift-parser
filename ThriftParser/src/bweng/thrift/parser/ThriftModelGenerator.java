@@ -686,7 +686,10 @@ public final class ThriftModelGenerator
                 {
                     ThriftPackage tp = ip.get(p.name_fully_qualified_);
                     if ( tp == null )
+                    {
+                        p.setDocument( dst );
                         dst.all_packages_.add(p);
+                    }
                     else
                     {
                         merge( tp, p );
@@ -694,7 +697,11 @@ public final class ThriftModelGenerator
                 }
             }
             else
+            {
                 dst.all_packages_ = src.all_packages_;
+                for ( ThriftPackage p : dst.all_packages_ )
+                    p.setDocument(dst);
+            }
         }
 
         if ( src.all_services_byname_ != null )
@@ -702,13 +709,7 @@ public final class ThriftModelGenerator
             // all_services_ and all_services_byname_ should always be in sync.
             // Handle them as one:
 
-            if ( dst.all_services_byname_ == null )
-            {
-                // Take over.
-                dst.all_services_byname_ = src.all_services_byname_;
-                dst.all_services_ = src.all_services_;
-            }
-            else
+            if ( dst.all_services_byname_ != null )
             {
                 if (dst.all_services_== null) dst.all_services_= new ArrayList<>();
 
@@ -716,11 +717,22 @@ public final class ThriftModelGenerator
                 {
                     if (!dst.all_services_byname_.containsKey(k.getKey()))
                     {
-                        dst.all_services_byname_.put(k.getKey(), k.getValue() );
-                        dst.all_services_.add(k.getValue());
+                        final ThriftService s = k.getValue();
+                        s.setDocument(dst);
+                        dst.all_services_byname_.put(k.getKey(), s );
+                        dst.all_services_.add(s);
                     }
                 }
             }
+            else
+            {
+                // Take over.
+                dst.all_services_byname_ = src.all_services_byname_;
+                dst.all_services_ = src.all_services_;
+                for ( ThriftService s : dst.all_services_ )
+                    s.setDocument(dst);
+            }
+
         }
 
         if (src.all_types_ != null )
@@ -734,7 +746,10 @@ public final class ThriftModelGenerator
             mergeTypes( alltypes, doc_alltypes);
 
             for ( ThriftType t : alltypes )
+            {
+                t.setDocument(dst);
                 dst.all_types_.put(t.name_fully_qualified_, t);
+            }
         }
 
         if (src.unresolved_types_ != null )
@@ -747,7 +762,10 @@ public final class ThriftModelGenerator
                 {
                     ThriftTypeRef org = dst.unresolved_types_.get(entry.getKey());
                     if ( org == null )
+                    {
                         dst.unresolved_types_.put(entry.getKey(),entry.getValue());
+                        entry.getValue().setDocument(dst);
+                    }
                     else
                     {
                         entry.getValue().resolvedType_ = org;
@@ -755,7 +773,11 @@ public final class ThriftModelGenerator
                 }
             }
             else
+            {
                 dst.unresolved_types_ = src.unresolved_types_;
+                for ( ThriftTypeRef t : dst.unresolved_types_.values() )
+                    t.setDocument(dst);
+            }
         }
 
         if (src.unresolved_services_ != null )
